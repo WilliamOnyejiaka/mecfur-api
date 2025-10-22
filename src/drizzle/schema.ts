@@ -10,7 +10,7 @@ import {
     integer,
     index,
     pgEnum,
-    json
+    json, serial, geometry
 } from "drizzle-orm/pg-core";
 import { randomUUID } from 'crypto';
 
@@ -50,8 +50,7 @@ export const users = pgTable('users', {
 
     // Location
     currentCity: varchar('current_city', { length: 100 }),
-    currentLatitude: real('current_latitude'),
-    currentLongitude: real('current_longitude'),
+    location: geometry("location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
     currentAddress: text('current_address'),
 
     // Account status
@@ -65,7 +64,6 @@ export const users = pgTable('users', {
 }, (table) => ({
     emailIdx: uniqueIndex('users_email_idx').on(table.email),
     phoneIdx: uniqueIndex('users_phone_idx').on(table.phone),
-    locationIdx: index('users_location_idx').on(table.currentLatitude, table.currentLongitude),
 }));
 
 export const mechanics = pgTable('mechanics', {
@@ -93,8 +91,7 @@ export const mechanics = pgTable('mechanics', {
 
     // Location & Availability
     baseCity: varchar('base_city', { length: 100 }).notNull(),
-    currentLatitude: real('current_latitude'),
-    currentLongitude: real('current_longitude'),
+    location: geometry("location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
     currentAddress: text('current_address'),
     isOnline: boolean('is_online').notNull().default(false),
     isAvailable: boolean('is_available').notNull().default(true),
@@ -130,7 +127,6 @@ export const mechanics = pgTable('mechanics', {
 }, (table) => ({
     emailIdx: uniqueIndex('mechanics_email_idx').on(table.email),
     phoneIdx: uniqueIndex('mechanics_phone_idx').on(table.phone),
-    locationIdx: index('mechanics_location_idx').on(table.currentLatitude, table.currentLongitude),
     availabilityIdx: index('mechanics_availability_idx').on(table.isOnline, table.isAvailable, table.isVerified),
 }));
 
@@ -147,11 +143,9 @@ export const jobs = pgTable('jobs', {
     urgency: urgencyEnum('urgency').notNull().default('normal'),
 
     // Location
-    pickupLatitude: real('pickup_latitude').notNull(),
-    pickupLongitude: real('pickup_longitude').notNull(),
+    pickupLocation: geometry("pickup_location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
     pickupAddress: text('pickup_address').notNull(),
-    destinationLat: real('destination_lat'),
-    destinationLng: real('destination_lng'),
+    destinationLocation: geometry("destination_location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
     destinationAddress: text('destination_address'),
 
     // Status & Timeline
@@ -198,6 +192,12 @@ export const jobs = pgTable('jobs', {
     mechanicIdx: index('jobs_mechanic_idx').on(table.mechanicId),
     statusIdx: index('jobs_status_idx').on(table.status),
     requestedAtIdx: index('jobs_requested_at_idx').on(table.requestedAt),
-    locationIdx: index('jobs_location_idx').on(table.pickupLatitude, table.pickupLongitude),
 }));
 
+export const dummy = pgTable("dummy", {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    location: geometry("location", { type: "POINT", srid: 4326 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+});

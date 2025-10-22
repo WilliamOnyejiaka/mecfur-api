@@ -8,7 +8,7 @@ import {env} from "../config";
 import {EnvKey} from "../config/env";
 import {db} from "../drizzle/drizzle";
 import {users} from "../drizzle/schema";
-import {eq} from "drizzle-orm";
+import {eq, sql} from "drizzle-orm";
 
 // * Authentication class for various users
 export default class Authentication extends BaseService {
@@ -51,19 +51,32 @@ export default class Authentication extends BaseService {
                 // * Uploading to cloudinary
                 const cloudinary = new Cloudinary();
 
-                ({ uploadedFiles, failedFiles, publicIds } = await cloudinary.upload([signUpData.file], ResourceType.IMAGE, CdnFolders.PROFILEPICTURE));
+                ({
+                    uploadedFiles,
+                    failedFiles,
+                    publicIds
+                } = await cloudinary.upload([signUpData.file], ResourceType.IMAGE, CdnFolders.PROFILEPICTURE));
                 if (failedFiles?.length) {
                     return this.responseData(400, true, "File upload failed", failedFiles);
                 }
             }
 
             signUpData.password = Password.hashPassword(signUpData.password, this.storedSalt);
+            const location = {
+                location: sql`ST_SetSRID
+                    (ST_MakePoint(${signUpData.lon}, ${signUpData.lat}), 4326)`
+            };
+
+            signUpData.lon = undefined;
+            signUpData.lat = undefined;
+
             const user = (await db.insert(users).values({
                 ...signUpData,
                 profilePicture: {
                     url: uploadedFiles[0]?.url || "",
                     publicId: uploadedFiles[0]?.publicId || "",
                 },
+                ...location,
                 isVerified: false,
                 isActive: true
             }).returning())[0];

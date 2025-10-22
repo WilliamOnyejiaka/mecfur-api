@@ -72,14 +72,12 @@ export const signUp = [
         .withMessage('Current city must be at most 100 characters')
         .trim(),
 
-    body('currentLatitude')
-        .optional()
+    body('lat')
         .isFloat()
         .withMessage('Current latitude must be a valid number')
         .toFloat(), // Sanitizes to a float
 
-    body('currentLongitude')
-        .optional()
+    body('lon')
         .isFloat()
         .withMessage('Current longitude must be a valid number')
         .toFloat(), // Sanitizes to a float
