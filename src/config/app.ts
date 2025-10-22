@@ -11,6 +11,7 @@ import {UserType} from "../types/constants";
 import {dummy} from "../drizzle/schema";
 import {db} from "../drizzle/drizzle";
 import {sql} from "drizzle-orm";
+import {Email} from "../services";
 
 
 export default async function createApp(pubClient: RedisClientType, subClient: RedisClientType) {
@@ -33,19 +34,20 @@ export default async function createApp(pubClient: RedisClientType, subClient: R
 
 
     app.post("/api/v1/test",async (req: Request, res: Response) => {
-        const usersArray = req.body.users;
+        const email = new Email();
+        const templateData = {
+            name: "userFullName",
+            otpCode: "otpCode"
+        };
+        const emailContent = await email.getEmailTemplate(templateData);
+        const mailResult = await email.sendEmail(
+            "Ecommerce Api",
+            "williamonyejiaka2021@gmail.com",
+            "Testing",
+            emailContent as string
+        );
 
-        const values = usersArray.map((user: any) => ({
-            name: user.name,
-            email: user.email,
-            location: sql`ST_SetSRID
-                (ST_MakePoint(${user.lon}, ${user.lat}), 4326)`,
-        }));
 
-        const inserted = await db
-            .insert(dummy)
-            .values(values)
-            .returning({id: dummy.id});
 
         res.status(200).json({
             error: false,

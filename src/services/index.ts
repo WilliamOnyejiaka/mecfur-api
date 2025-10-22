@@ -5,6 +5,7 @@ import Authentication from "./Authentication";
 import User from "./User";
 import Job from "./Job";
 import Mechanic from "./Mechanic";
+import Email from "./Email";
 
 export {
     Token,
@@ -13,5 +14,6 @@ export {
     Authentication,
     User,
     Job,
-    Mechanic
+    Mechanic,
+    Email
 };
