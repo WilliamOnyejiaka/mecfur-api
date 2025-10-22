@@ -6,7 +6,7 @@ import {env, initializeIO, logger} from ".";
 import {RedisClientType} from "redis";
 import {multerErrorHandler, validateJWT, verifyJWT} from "../middlewares";
 import helmet from "helmet";
-import {auth, user} from "../routes";
+import {auth, job, user,mechanic} from "../routes";
 import {UserType} from "../types/constants";
 import {dummy} from "../drizzle/schema";
 import {db} from "../drizzle/drizzle";
@@ -27,7 +27,10 @@ export default async function createApp(pubClient: RedisClientType, subClient: R
     app.use(express.json());
 
     app.use("/api/v1/auth", auth);
-    app.use("/api/v1/user", verifyJWT([UserType.User]), user);
+    app.use("/api/v1/job", job);
+    app.use("/api/v1/users", verifyJWT([UserType.User]), user);
+    app.use("/api/v1/mechanics", verifyJWT([UserType.MECHANIC]), mechanic);
+
 
     app.post("/api/v1/test",async (req: Request, res: Response) => {
         const usersArray = req.body.users;

@@ -15,9 +15,23 @@ export default class Authentication {
         res.status(serviceResult.statusCode).json(serviceResult.json);
     }
 
+    public static async createMechanic(req: Request, res: Response) {
+        let signUpData = req.body;
+        signUpData.file = req.file;
+
+        const serviceResult = await Authentication.service.mechcanicsignUp(signUpData);
+        res.status(serviceResult.statusCode).json(serviceResult.json);
+    }
+
     public static async login(req: Request, res: Response) {
         const {email, password} = req.body;
         const serviceResult = await Authentication.service.login(email, password);
+        res.status(serviceResult.statusCode).json(serviceResult.json);
+    }
+
+    public static async mechanicLogin(req: Request, res: Response) {
+        const {email, password} = req.body;
+        const serviceResult = await Authentication.service.mechanicLogin(email, password);
         res.status(serviceResult.statusCode).json(serviceResult.json);
     }
 }

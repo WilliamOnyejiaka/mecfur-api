@@ -7,7 +7,7 @@ import {TokenBlackList} from "../cache";
 import {env} from "../config";
 import {EnvKey} from "../config/env";
 import {db} from "../drizzle/drizzle";
-import {users} from "../drizzle/schema";
+import {mechanics, users} from "../drizzle/schema";
 import {eq, sql} from "drizzle-orm";
 
 // * Authentication class for various users
@@ -62,13 +62,6 @@ export default class Authentication extends BaseService {
             }
 
             signUpData.password = Password.hashPassword(signUpData.password, this.storedSalt);
-            const location = {
-                location: sql`ST_SetSRID
-                    (ST_MakePoint(${signUpData.lon}, ${signUpData.lat}), 4326)`
-            };
-
-            signUpData.lon = undefined;
-            signUpData.lat = undefined;
 
             const user = (await db.insert(users).values({
                 ...signUpData,
@@ -76,7 +69,6 @@ export default class Authentication extends BaseService {
                     url: uploadedFiles[0]?.url || "",
                     publicId: uploadedFiles[0]?.publicId || "",
                 },
-                ...location,
                 isVerified: false,
                 isActive: true
             }).returning())[0];
@@ -96,6 +88,67 @@ export default class Authentication extends BaseService {
         }
     }
 
+    public async mechcanicsignUp(signUpData: any) {
+        try {
+
+            let userEmailExists = await db.select().from(mechanics).where(eq(mechanics.email, signUpData.email));
+            if (userEmailExists.length > 0) return this.responseData(400, true, `Email already exists.`);
+
+            let userPhoneNumberExists = await db.select().from(mechanics).where(eq(mechanics.phone, signUpData.phone));
+            if (userPhoneNumberExists.length > 0) return this.responseData(400, true, `Phone number already exists.`);
+
+            let uploadedFiles: UploadedFiles[] = [], publicIds: string[] = [], failedFiles: FailedFiles[] = [];
+
+            // * Checking if user profile picture exists
+            if (signUpData.file) {
+                // * Uploading to cloudinary
+                const cloudinary = new Cloudinary();
+
+                ({
+                    uploadedFiles,
+                    failedFiles,
+                    publicIds
+                } = await cloudinary.upload([signUpData.file], ResourceType.IMAGE, CdnFolders.PROFILEPICTURE));
+                if (failedFiles?.length) {
+                    return this.responseData(400, true, "File upload failed", failedFiles);
+                }
+            }
+
+            signUpData.password = Password.hashPassword(signUpData.password, this.storedSalt);
+            const location = {
+                location: sql`ST_SetSRID
+                    (ST_MakePoint(${signUpData.longitude}, ${signUpData.latitude}), 4326)`
+            };
+
+            signUpData.longitude = undefined;
+            signUpData.latitude = undefined;
+
+            const user = (await db.insert(mechanics).values({
+                ...signUpData,
+                profilePicture: {
+                    url: uploadedFiles[0]?.url || "",
+                    publicId: uploadedFiles[0]?.publicId || "",
+                },
+                ...location,
+                isVerified: false,
+                isActive: true
+            }).returning())[0];
+
+            const token = this.generateUserToken({id: user.id}, UserType.MECHANIC);
+            const data = {
+                user: {
+                    ...user,
+                    password: undefined
+                },
+                token: token,
+            };
+            return this.responseData(201, false, "  Mechanic has been created successfully", data);
+
+        } catch (error) {
+            return this.handleDrizzleError(error);
+        }
+    }
+
     // * User(normal user) login service
     public async login(email: string, password: string) {
         try {
@@ -108,6 +161,34 @@ export default class Authentication extends BaseService {
 
                 if (validPassword) {
                     const token = this.generateUserToken({id: user.id}, UserType.User);
+                    const data = {
+                        user: {
+                            ...user,
+                            password: undefined
+                        },
+                        token: token,
+                    };
+                    return this.responseData(200, false, "User has been logged in successfully", data);
+                }
+                return super.responseData(HttpStatus.BAD_REQUEST, true, "Invalid password");
+            }
+            return this.responseData(404, true, "User was not found")
+        } catch (error) {
+            return this.handleDrizzleError(error);
+        }
+    }
+
+    public async mechanicLogin(email: string, password: string) {
+        try {
+            let result = await db.select().from(mechanics).where(eq(mechanics.email, email));
+
+            if (result.length > 0) {
+                const user = result[0];
+                const hashedPassword = user.password!;
+                const validPassword = Password.compare(password, hashedPassword, this.storedSalt);
+
+                if (validPassword) {
+                    const token = this.generateUserToken({id: user.id}, UserType.MECHANIC);
                     const data = {
                         user: {
                             ...user,

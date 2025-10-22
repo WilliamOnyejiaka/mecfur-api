@@ -49,9 +49,9 @@ export const users = pgTable('users', {
     profilePicture: json('profile_picture').$type<PhotoField>(),
 
     // Location
-    currentCity: varchar('current_city', { length: 100 }),
-    location: geometry("location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
-    currentAddress: text('current_address'),
+    // currentCity: varchar('current_city', { length: 100 }),
+    // location: geometry("location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
+    // currentAddress: text('current_address'),
 
     // Account status
     isActive: boolean('is_active').notNull().default(true),
