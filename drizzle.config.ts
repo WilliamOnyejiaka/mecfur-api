@@ -8,7 +8,10 @@ export default defineConfig({
     schema: './src/drizzle/schema.ts',
     out: './migrations',
     dbCredentials:{
-        url: process.env.DATABASE_URL as string
+        url: process.env.DATABASE_URL as string,
+        ssl: {
+            rejectUnauthorized: false
+        }
     },
     verbose: true,
     strict: true,
