@@ -214,3 +214,7 @@ export function imageFolders(key: string) {
     }[key];
 }
 
+export enum QueueType {
+    NOTIFICATION='notification-queue'
+}
+

@@ -24,4 +24,32 @@ export default class Job {
         );
         Controller.response(res, serviceResult);
     }
+
+    public static async createJob(req: Request, res: Response) {
+        const {id: userId} = res.locals.data;
+        const {
+            issueType,
+            issueDescription,
+            pickupLon,
+            pickupLat,
+            vehicleMake,
+            vehicleModel,
+            vehicleYear,
+            pickupAddress,
+            vehiclePlate
+        } = req.body;
+
+        const serviceResult = await Job.service.createJob(
+            issueType,
+            issueDescription,
+            pickupLon,
+            pickupLat,
+            vehicleMake,
+            vehicleModel,
+            vehicleYear,
+            vehiclePlate,
+            pickupAddress,
+            userId);
+        Controller.response(res, serviceResult);
+    }
 }

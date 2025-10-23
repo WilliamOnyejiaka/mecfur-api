@@ -145,7 +145,7 @@ export const jobs = pgTable('jobs', {
     // Location
     pickupLocation: geometry("pickup_location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
     pickupAddress: text('pickup_address').notNull(),
-    destinationLocation: geometry("destination_location", { type: "POINT", srid: 4326 }).notNull(), // e.g., POINT(-122.4194 37.7749)
+    destinationLocation: geometry("destination_location", { type: "POINT", srid: 4326 }), // e.g., POINT(-122.4194 37.7749)
     destinationAddress: text('destination_address'),
 
     // Status & Timeline
@@ -174,7 +174,7 @@ export const jobs = pgTable('jobs', {
     // paymentId: text('payment_id').unique(),
 
     // Cancellation
-    cancelledBy: cancelledBy('cancelledBy').notNull(),
+    cancelledBy: cancelledBy('cancelledBy'),
     cancellationReason: text('cancellation_reason'),
 
     // Vehicle Info

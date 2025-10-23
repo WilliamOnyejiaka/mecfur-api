@@ -1,4 +1,5 @@
 import {DrizzleError} from "drizzle-orm";
+import {pagination} from "../utils";
 
 interface ErrorResponse {
     status: number;
@@ -84,5 +85,8 @@ export default class Service {
         return this.responseData(response.status, true, response.message);
     }
 
+    public createPagination(page: number,limit: number,total: number){
+        return pagination(page,limit,total)
+    }
 
 }

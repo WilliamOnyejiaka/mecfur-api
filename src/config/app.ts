@@ -7,11 +7,13 @@ import {RedisClientType} from "redis";
 import {multerErrorHandler, validateJWT, verifyJWT} from "../middlewares";
 import helmet from "helmet";
 import {auth, job, user,mechanic} from "../routes";
-import {UserType} from "../types/constants";
+import {Namespaces, UserType} from "../types/constants";
 import {dummy} from "../drizzle/schema";
 import {db} from "../drizzle/drizzle";
 import {sql} from "drizzle-orm";
 import {Email} from "../services";
+import {Queues} from "./bullMQ";
+import notification from "../io/events/notification";
 
 
 export default async function createApp(pubClient: RedisClientType, subClient: RedisClientType) {
@@ -27,6 +29,13 @@ export default async function createApp(pubClient: RedisClientType, subClient: R
     app.use(morgan("combined", {stream}));
     app.use(express.json());
 
+    const notificationNamespace = io.of(Namespaces.NOTIFICATION);
+
+    notificationNamespace.use(validateJWT([UserType.MECHANIC,UserType.User]));
+
+    notification.initialize(notificationNamespace, io);
+
+    // Routes
     app.use("/api/v1/auth", auth);
     app.use("/api/v1/job", job);
     app.use("/api/v1/users", verifyJWT([UserType.User]), user);
@@ -34,20 +43,22 @@ export default async function createApp(pubClient: RedisClientType, subClient: R
 
 
     app.post("/api/v1/test",async (req: Request, res: Response) => {
-        const email = new Email();
-        const templateData = {
-            name: "userFullName",
-            otpCode: "otpCode"
-        };
-        const emailContent = await email.getEmailTemplate(templateData);
-        const mailResult = await email.sendEmail(
-            "Ecommerce Api",
-            "williamonyejiaka2021@gmail.com",
-            "Testing",
-            emailContent as string
-        );
+        // const email = new Email();
+        // const templateData = {
+        //     name: "userFullName",
+        //     otpCode: "otpCode"
+        // };
+        // const emailContent = await email.getEmailTemplate(templateData);
+        // const mailResult = await email.sendEmail(
+        //     "Ecommerce Api",
+        //     "williamonyejiaka2021@gmail.com",
+        //     "Testing",
+        //     emailContent as string
+        // );
 
+        // await updateChat.add('updateChat', { recipientId, recipientType, recipientSocketId }, { jobId: `send-${Date.now()}`, priority: 1 });
 
+        await Queues.notification.add('notify',{name: "William"}, { jobId: `send-${Date.now()}`, priority: 1 });
 
         res.status(200).json({
             error: false,

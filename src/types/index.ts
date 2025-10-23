@@ -1,4 +1,7 @@
 import { Server, Socket } from "socket.io";
+import { Job } from "bullmq";
+import {QueueType} from "./constants";
+
 
 export interface Cache { // TODO: use this only for users
     get: (key: string) => Promise<{ error: boolean; data?: any }>;
@@ -62,14 +65,16 @@ export type FailedFiles = {
 
 
 export type EventHandler<T> = (message: T, io: Server) => Promise<void> | void;
-export const exchange = 'main_exchange';
 
-export interface QueueConfig {
-    name: string;
-    durable: boolean;
-    routingKeyPattern: string;
-    exchange: string; // Dynamic exchange name for the queue
-    handlers: Record<string, EventHandler<any>>;
+export interface WorkerConfig { connection: { url: string }, concurrency?: number, limiter?: { max: number, duration: number } }
+
+export interface IWorker<T> {
+    process: (job: Job<T>) => Promise<void>,
+    completed?: (job: Job<any, void, string>, result: void, prev: string) => void,
+    failed?: (job: Job<any, void, string> | undefined, error: Error, prev: string) => void,
+    drained?: () => void,
+    config: WorkerConfig,
+    queueName: QueueType
 }
 
 export interface ISocket extends Socket {
