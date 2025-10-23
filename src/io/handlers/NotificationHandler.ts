@@ -1,6 +1,5 @@
 import {Server} from "socket.io";
 import {ISocket} from "../../types";
-import {Events, ServiceResultDataType, SocketData, UserType} from "./../../types/constants";
 import {logger} from "../../config";
 
 export default class NotificationHandler {
@@ -14,7 +13,7 @@ export default class NotificationHandler {
         socket.join(userId);
 
 
-        logger.info(`${userType}:${userId} with the socket id - ${socketId} has connected to notification namespace`);
+        logger.info(`🤝 ${userType}:${userId} with the socket id - ${socketId} has connected to notification namespace`);
 
     }
 
@@ -23,7 +22,7 @@ export default class NotificationHandler {
             const userId = socket.locals.data.id;
             const userType = socket.locals.data.userType;
 
-            logger.info(`${userType}:${userId} with the socket id - ${socket.id} has disconnected from notification namespace`);
+            logger.info(`👋 ${userType}:${userId} with the socket id - ${socket.id} has disconnected from notification namespace`);
         } catch (error) {
             console.error("❌ Error in disconnect:", error);
         }

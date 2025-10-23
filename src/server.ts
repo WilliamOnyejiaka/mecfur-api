@@ -6,6 +6,7 @@ import axios from "axios";
 import {IWorker, WorkerConfig} from "./types";
 import {Notification} from "./queues/Notification";
 import {Worker} from 'bullmq';
+import {PostJob} from "./queues/PostJob";
 
 
 const PORT = env(EnvKey.PORT)!;
@@ -34,6 +35,7 @@ const PORT = env(EnvKey.PORT)!;
 
     const IWorkers: IWorker<any>[] = [
         new Notification(workerConfig, io),
+        new PostJob(workerConfig, io),
     ];
 
     for (const IWorker of IWorkers) {

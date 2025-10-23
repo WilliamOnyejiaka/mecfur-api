@@ -1,8 +1,9 @@
 import {HttpStatus, UserType} from "../types/constants";
 import BaseService from "./Service";
 import {db} from "../drizzle/drizzle";
-import {jobs, mechanics, users} from "../drizzle/schema";
+import {jobRequests, jobs, mechanics, users} from "../drizzle/schema";
 import {and, arrayContained, arrayContains, arrayOverlaps, eq, sql} from "drizzle-orm";
+import {Queues} from "../config/bullMQ";
 import notify from "./notify";
 
 export default class Job extends BaseService {
@@ -70,29 +71,77 @@ export default class Job extends BaseService {
                            userId: string
     ) {
         try {
-            // const result = (await db.insert(jobs).values({
-            //     issueType,
-            //     issueDescription,
-            //     pickupLocation: sql`ST_SetSRID
-            //         (ST_MakePoint(${pickupLon}, ${pickupLat}), 4326)`,
-            //     pickupAddress,
-            //     vehicleMake,
-            //     vehicleModel,
-            //     vehicleYear,
-            //     vehiclePlate,
-            //     userId,
-            //     status: "pending"
-            // }).returning())[0];
+            const result = (await db.insert(jobs).values({
+                issueType,
+                issueDescription,
+                pickupLocation: sql`ST_SetSRID
+                    (ST_MakePoint(${pickupLon}, ${pickupLat}), 4326)`,
+                pickupAddress,
+                vehicleMake,
+                vehicleModel,
+                vehicleYear,
+                vehiclePlate,
+                userId,
+                status: "pending"
+            }).returning())[0];
 
             const nearByMechanics = await this.nearByMechanicsWithSkill(pickupLon, pickupLat, 50, 1, 20, [issueType]);
-            // await notify({
-            //     userId: userId,
-            //     userType: UserType.MECHANIC,
-            //     type: "job",
-            //     data: { matchedUser: "likedUser" }
-            // });
-            const data = {job: "result", nearByMechanics: nearByMechanics.json.data}
-            return this.responseData(HttpStatus.OK, false, "Job was create successfully.", data);
+
+            const mechanics = nearByMechanics.json.data?.records;
+            if (mechanics && mechanics.length > 0) {
+                await Queues.postJob.add('job', {
+                    mechanics,
+                    jobId: result.id,
+                    jobDetails: result
+                }, {jobId: `send-${Date.now()}`, priority: 1});
+            }
+            const data = {job: result, nearByMechanics: mechanics}
+
+            return this.responseData(HttpStatus.OK, false, "Job was created successfully.", data);
+        } catch (error) {
+            return this.handleDrizzleError(error);
+        }
+    }
+
+    public async acceptJob(requestId: string, mechanicId: string) {
+        try {
+            const request = await db
+                .select()
+                .from(jobRequests)
+                .innerJoin(jobs, eq(jobRequests.jobId, jobs.id))
+                .innerJoin(mechanics, eq(jobRequests.mechanicId, mechanics.id))
+                .where(and(eq(jobRequests.id, requestId), eq(jobRequests.mechanicId, mechanicId)))
+                .limit(1);
+            console.log(request)
+            if (!request[0]) return this.responseData(HttpStatus.NOT_FOUND, true, "Job was not found");
+
+            const job = request[0].jobs;
+            const status = request[0].jobs.status;
+            if([
+                'searching',
+                'accepted',
+                'mechanic_enroute',
+                'in_progress',
+                'completed',
+                'cancelled'
+            ].includes(status)) return this.responseData(HttpStatus.BAD_REQUEST, true, `This job cannot be accepted because it has a ${status} status.`);
+
+            const updatedJob = (await db
+                .update(jobs)
+                .set({ status: "accepted",mechanicId: mechanicId })
+                .where(eq(jobs.id, job.id))
+                .returning())[0];
+
+            const mechanic = request[0].mechanics;
+            await notify({
+                userId: job.userId,
+                userType: UserType.User,
+                type: 'job',
+                data: {jobDetails: updatedJob,mechanic: mechanic},
+            });
+
+            return this.responseData(HttpStatus.OK, false, "Job was accepted successfully.", updatedJob);
+
         } catch (error) {
             return this.handleDrizzleError(error);
         }
@@ -111,7 +160,10 @@ export default class Job extends BaseService {
 
             // Build where conditions
             const whereConditions = [
-                sql`ST_DistanceSphere(${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)) <= ${radiusKm * 1000}`,
+                sql`ST_DistanceSphere
+                    (${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326))
+                    <=
+                    ${radiusKm * 1000}`,
             ];
 
             // Add skills filter only if desiredSkills is not empty
@@ -134,7 +186,8 @@ export default class Job extends BaseService {
                 .from(mechanics)
                 .where(and(...whereConditions))
                 .orderBy(
-                    sql`ST_DistanceSphere(${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326))`
+                    sql`ST_DistanceSphere
+                        (${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326))`
                 )
                 .limit(limit)
                 .offset(offset);
@@ -142,12 +195,13 @@ export default class Job extends BaseService {
             // Count query for pagination
             const countQuery = db
                 .select({
-                    count: sql`COUNT(*)`,
+                    count: sql`COUNT
+                        (*)`,
                 })
                 .from(mechanics)
                 .where(and(...whereConditions)); // Use same conditions as resultsQuery
 
-            const [results, [{ count }]] = await Promise.all([resultsQuery, countQuery]);
+            const [results, [{count}]] = await Promise.all([resultsQuery, countQuery]);
             const data = {
                 records: results,
                 pagination: this.createPagination(page, limit, Number(count)),
@@ -195,13 +249,16 @@ export default class Job extends BaseService {
 
             // Build where conditions
             const whereConditions = [
-                sql`ST_DistanceSphere(${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)) <= ${radiusKm * 1000}`,
+                sql`ST_DistanceSphere
+                    (${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326))
+                    <=
+                    ${radiusKm * 1000}`,
             ];
 
             // Add skills filter only if desiredSkills is not empty
             if (desiredSkills.length > 0) {
                 // whereConditions.push(sql`${mechanics.skills} && ${desiredSkills}`);
-                whereConditions.push(arrayContained(mechanics.skills,desiredSkills));
+                whereConditions.push(arrayContained(mechanics.skills, desiredSkills));
 
             }
 
@@ -222,7 +279,8 @@ export default class Job extends BaseService {
                 .from(mechanics)
                 .where(and(...whereConditions))
                 .orderBy(
-                    sql`ST_DistanceSphere(${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326))`
+                    sql`ST_DistanceSphere
+                        (${mechanics.location}, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326))`
                 )
                 .limit(limit)
                 .offset(offset);
@@ -255,7 +313,5 @@ export default class Job extends BaseService {
         }
     }
 
-    public async acceptJob() {
 
-    }
 }

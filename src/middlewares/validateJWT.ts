@@ -47,8 +47,6 @@ const validateJWT = (types: string[],neededData: string[] = ['data']) => async (
     for (let item of neededData) {
         socket.locals[item] = tokenValidationResult.data[item];
     }
-    socket.locals['userType'] = tokenValidationResult.data['types'][0];
-
     next();
 }
 

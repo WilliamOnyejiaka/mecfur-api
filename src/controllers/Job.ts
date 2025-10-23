@@ -52,4 +52,12 @@ export default class Job {
             userId);
         Controller.response(res, serviceResult);
     }
+
+    public static async acceptJob(req: Request, res: Response) {
+        const {id: userId} = res.locals.data;
+        const {requestId} = req.params;
+
+        const serviceResult = await Job.service.acceptJob(requestId, userId);
+        Controller.response(res, serviceResult);
+    }
 }

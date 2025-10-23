@@ -4,6 +4,14 @@ import {handleValidationErrors} from "../validators";
 import {verifyJWT} from "../index";
 import {UserType} from "../../types/constants";
 
+export const acceptJob = [
+    verifyJWT([UserType.MECHANIC]),
+    param('requestId')
+        .isUUID()
+        .withMessage('Request Id must be a valid UUID.'),
+    handleValidationErrors
+];
+
 export const nearByMechanics = [
     query('page').optional().isInt({min: 1}).withMessage("page must be an integer"),
     query('limit').optional().isInt({min: 1}).withMessage("limit must be an integer"),

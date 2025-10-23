@@ -13,6 +13,7 @@ import {
     json, serial, geometry, jsonb
 } from "drizzle-orm/pg-core";
 import { randomUUID } from 'crypto';
+import {notificationType} from "../types/constants";
 
 export const jobStatusEnum = pgEnum('job_status', [
     'pending',
@@ -130,6 +131,18 @@ export const mechanics = pgTable('mechanics', {
     availabilityIdx: index('mechanics_availability_idx').on(table.isOnline, table.isAvailable, table.isVerified),
 }));
 
+export const jobRequests = pgTable('job_requests', {
+    id: uuid('id').primaryKey().$defaultFn(() => randomUUID()),
+    jobId: uuid('job_id').notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+    mechanicId: uuid('mechanic_id').references(() => mechanics.id, { onDelete: 'set null' }),
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => ({
+    jobIdx: index('job_requests_job_idx').on(table.jobId),
+    mechanicIdx: index('job_requests_mechanic_idx').on(table.mechanicId),
+}));
+
 export const jobs = pgTable('jobs', {
     id: uuid('id').primaryKey().$defaultFn(() => randomUUID()),
 
@@ -192,6 +205,13 @@ export const jobs = pgTable('jobs', {
     mechanicIdx: index('jobs_mechanic_idx').on(table.mechanicId),
     statusIdx: index('jobs_status_idx').on(table.status),
     requestedAtIdx: index('jobs_requested_at_idx').on(table.requestedAt),
+
+    // trigger: trigger('update_jobs_timestamp', `
+    //     CREATE TRIGGER update_jobs_timestamp
+    //     BEFORE UPDATE ON jobs
+    //     FOR EACH ROW
+    //     EXECUTE FUNCTION update_timestamp();
+    // `),
 }));
 
 export const dummy = pgTable("dummy", {
@@ -202,7 +222,7 @@ export const dummy = pgTable("dummy", {
     createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const notificationTypeEnum = pgEnum('notification_type', ['system', 'job']);
+export const notificationTypeEnum = pgEnum('notification_type', ['system', 'request','job_accepted','job_cancelled','job_completed']);
 export const notificationStatusEnum = pgEnum('notification_status', ['pending', 'sent', 'failed']);
 export const notificationPriorityEnum = pgEnum('notification_priority', ['low', 'normal', 'high']);
 

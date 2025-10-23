@@ -1,4 +1,3 @@
-
 export enum UserType {
     Admin = "admin",
     User = "user",
@@ -14,6 +13,7 @@ export enum Events {
     APP_ERROR = "appError",
     ONLINE_PRESENCE = "onlinePresence"
 }
+
 export enum Namespaces {
     CHAT = '/chat',
     PRESENCE = '/presence',
@@ -215,7 +215,8 @@ export function imageFolders(key: string) {
 }
 
 export enum QueueType {
-    NOTIFICATION='notification-queue',
-    JOB="job-queue",
+    NOTIFICATION = 'notification-queue',
+    POST_JOB = "post-job-queue",
 }
 
+export type notificationType = 'system' | 'request' | 'job_accepted' | 'job_cancelled' | 'job_completed';

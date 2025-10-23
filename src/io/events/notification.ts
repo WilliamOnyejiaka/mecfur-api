@@ -1,9 +1,9 @@
-import { Notification } from "../namespaces";
-// import { NotificationHandler } from "../handlers/sockets";
+import {Notification} from "../namespaces";
+import NotificationHandler from "../handlers/NotificationHandler";
 
 const notification = new Notification();
 
-// notification.onConnection(NotificationHandler.onConnection.bind(NotificationHandler));
-// notification.register("disconnect", NotificationHandler.disconnect.bind(NotificationHandler));
+notification.onConnection(NotificationHandler.onConnection.bind(NotificationHandler));
+notification.register("disconnect", NotificationHandler.disconnect.bind(NotificationHandler));
 
 export default notification;

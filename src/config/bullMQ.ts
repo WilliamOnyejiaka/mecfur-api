@@ -7,5 +7,6 @@ const connection = {url: env(EnvKey.REDIS_URL)!};
 
 export const Queues = {
     notification: new Queue(QueueType.NOTIFICATION, {connection}),
-    job: new Queue(QueueType.JOB, {connection}),
+    postJob: new Queue(QueueType.POST_JOB, {connection}),
 };
+
