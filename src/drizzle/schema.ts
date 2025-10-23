@@ -10,7 +10,7 @@ import {
     integer,
     index,
     pgEnum,
-    json, serial, geometry
+    json, serial, geometry, jsonb
 } from "drizzle-orm/pg-core";
 import { randomUUID } from 'crypto';
 
@@ -201,3 +201,26 @@ export const dummy = pgTable("dummy", {
     location: geometry("location", { type: "POINT", srid: 4326 }).notNull(),
     createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const notificationTypeEnum = pgEnum('notification_type', ['system', 'job']);
+export const notificationStatusEnum = pgEnum('notification_status', ['pending', 'sent', 'failed']);
+export const notificationPriorityEnum = pgEnum('notification_priority', ['low', 'normal', 'high']);
+
+export const notifications = pgTable('notifications', {
+    id: uuid('id').primaryKey().$defaultFn(() => randomUUID()),
+    userId: uuid('user_id').references(() => users.id),
+    mechanicId: uuid('mechanic_id').references(() => mechanics.id),
+    type: notificationTypeEnum('type').notNull().default('system'),
+    data: jsonb('data').notNull().default({}),
+    status: notificationStatusEnum('status').notNull().default('pending'),
+    isRead: boolean('is_read').notNull().default(false),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    priority: notificationPriorityEnum('priority').notNull().default('normal'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+    userIdIdx: index('notifications_user_id_idx').on(table.userId),
+    typeIdx: index('notifications_type_idx').on(table.type),
+    statusIdx: index('notifications_status_idx').on(table.status),
+    isReadIdx: index('notifications_is_read_idx').on(table.isRead),
+}));

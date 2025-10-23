@@ -1,8 +1,9 @@
-import {HttpStatus} from "../types/constants";
+import {HttpStatus, UserType} from "../types/constants";
 import BaseService from "./Service";
 import {db} from "../drizzle/drizzle";
 import {jobs, mechanics, users} from "../drizzle/schema";
 import {and, arrayContained, arrayContains, arrayOverlaps, eq, sql} from "drizzle-orm";
+import notify from "./notify";
 
 export default class Job extends BaseService {
 
@@ -84,6 +85,12 @@ export default class Job extends BaseService {
             // }).returning())[0];
 
             const nearByMechanics = await this.nearByMechanicsWithSkill(pickupLon, pickupLat, 50, 1, 20, [issueType]);
+            // await notify({
+            //     userId: userId,
+            //     userType: UserType.MECHANIC,
+            //     type: "job",
+            //     data: { matchedUser: "likedUser" }
+            // });
             const data = {job: "result", nearByMechanics: nearByMechanics.json.data}
             return this.responseData(HttpStatus.OK, false, "Job was create successfully.", data);
         } catch (error) {

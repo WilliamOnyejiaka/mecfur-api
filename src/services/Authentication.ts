@@ -134,7 +134,7 @@ export default class Authentication extends BaseService {
                 isActive: true
             }).returning())[0];
 
-            const token = this.generateUserToken({id: user.id}, UserType.MECHANIC);
+            const token = this.generateUserToken({id: user.id,userType: UserType.MECHANIC}, UserType.MECHANIC);
             const data = {
                 user: {
                     ...user,
@@ -160,7 +160,7 @@ export default class Authentication extends BaseService {
                 const validPassword = Password.compare(password, hashedPassword, this.storedSalt);
 
                 if (validPassword) {
-                    const token = this.generateUserToken({id: user.id}, UserType.User);
+                    const token = this.generateUserToken({id: user.id,userType: UserType.User}, UserType.User);
                     const data = {
                         user: {
                             ...user,
@@ -188,7 +188,7 @@ export default class Authentication extends BaseService {
                 const validPassword = Password.compare(password, hashedPassword, this.storedSalt);
 
                 if (validPassword) {
-                    const token = this.generateUserToken({id: user.id}, UserType.MECHANIC);
+                    const token = this.generateUserToken({id: user.id,userType: UserType.MECHANIC}, UserType.MECHANIC);
                     const data = {
                         user: {
                             ...user,
